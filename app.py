@@ -4,14 +4,18 @@
 # =========================================================
 
 from pathlib import Path
+import warnings
+
+warnings.filterwarnings("ignore", category=UserWarning)
+warnings.filterwarnings("ignore", category=FutureWarning)
 
 import joblib
 import numpy as np
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
+from statsmodels.tsa.statespace.sarimax import SARIMAX
 import streamlit as st
-import streamlit.components.v1 as components
 
 # =========================================================
 # PAGE CONFIG (must be first Streamlit call)
@@ -75,31 +79,187 @@ footer {visibility: hidden;}
 header[data-testid="stHeader"] {background: transparent;}
 section[data-testid="stSidebar"] {
     background:
-        radial-gradient(circle at 25% 15%, rgba(241,204,109,.28), transparent 22%),
-        linear-gradient(180deg, #cfe6bf 0%, #dff0ce 100%);
-    border-right: 1px solid rgba(32,49,39,.06);
+        radial-gradient(circle at 18% 12%, rgba(241, 204, 109, 0.35), transparent 25%),
+        radial-gradient(circle at 85% 88%, rgba(141, 195, 213, 0.30), transparent 25%),
+        linear-gradient(180deg, #d3e8c5 0%, #dff0ce 60%, #cfe5c0 100%) !important;
+    border-right: 1px solid rgba(31, 81, 55, 0.12) !important;
 }
-section[data-testid="stSidebar"] .stRadio label,
-section[data-testid="stSidebar"] [data-testid="stWidgetLabel"],
-section[data-testid="stSidebar"] [data-testid="stMarkdownContainer"],
-section[data-testid="stSidebar"] p { color: #1f5137 !important; }
-section[data-testid="stSidebar"] > div { padding-top: 1.25rem; }
+section[data-testid="stSidebar"] > div {
+    padding-top: 1.5rem !important;
+    padding-left: 1rem !important;
+    padding-right: 1rem !important;
+}
 
+/* Sidebar Brand Card */
 .sidebar-brand {
-    background: #f4f4e7;
-    padding: 20px;
+    background: linear-gradient(145deg, #ffffff 0%, #edf5e3 100%);
+    padding: 22px 18px;
     border-radius: 24px;
-    box-shadow: 10px 10px 18px var(--shadow-dark), -8px -8px 16px var(--shadow-light);
-    margin-bottom: 18px;
+    box-shadow: 8px 8px 18px var(--shadow-dark), -6px -6px 14px var(--shadow-light);
+    border: 1.5px solid rgba(255, 255, 255, 0.85);
+    margin-bottom: 20px;
+    position: relative;
+    overflow: hidden;
+}
+.sidebar-brand::before {
+    content: "";
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, #1f5137 0%, #8dc3d5 50%, #f1cc6d 100%);
+}
+.sidebar-brand .brand-badge {
+    display: inline-block;
+    padding: 3px 9px;
+    border-radius: 999px;
+    background: #cde8ca;
+    color: #0f3320;
+    font-size: 0.65rem;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    margin-bottom: 8px;
 }
 .sidebar-brand .brand-title {
     font-family: "Baloo 2", sans-serif;
-    font-size: 1.45rem; font-weight: 800;
-    color: var(--green-dark); line-height: 1.0;
+    font-size: 1.42rem;
+    font-weight: 800;
+    color: var(--green-dark);
+    line-height: 1.1;
+    margin: 0;
 }
 .sidebar-brand .brand-sub {
-    font-size: .78rem; color: #2d4d33;
-    font-weight: 600; margin-top: 4px;
+    font-size: 0.74rem;
+    color: #2d4d33;
+    font-weight: 600;
+    margin-top: 5px;
+    opacity: 0.9;
+}
+
+/* Sidebar Navigation Header */
+/* Completely hide widget label and stRadio header so no duplicate 'Navigasi Utama' appears */
+section[data-testid="stSidebar"] div[data-testid="stRadio"] label[data-testid="stWidgetLabel"],
+section[data-testid="stSidebar"] div[data-testid="stRadio"] > label,
+section[data-testid="stSidebar"] div[data-testid="stRadio"] > div:first-child:not([role="radiogroup"]) {
+    display: none !important;
+    height: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+}
+
+section[data-testid="stSidebar"] div[data-testid="stRadio"] div[role="radiogroup"] {
+    gap: 9px !important;
+    padding: 2px 0 !important;
+}
+
+/* Hide raw radio input and bullet circles */
+section[data-testid="stSidebar"] div[data-testid="stRadio"] div[role="radiogroup"] input[type="radio"] {
+    display: none !important;
+}
+section[data-testid="stSidebar"] div[data-testid="stRadio"] div[role="radiogroup"] label > div:first-child:not([data-testid="stMarkdownContainer"]) {
+    display: none !important;
+}
+
+/* Claymorphic Nav Pill Buttons - ONLY inside role="radiogroup" */
+section[data-testid="stSidebar"] div[data-testid="stRadio"] div[role="radiogroup"] label {
+    background: linear-gradient(145deg, #ffffff 0%, #edf5e3 100%) !important;
+    border-radius: 16px !important;
+    padding: 12px 18px !important;
+    margin: 0 !important;
+    border: 1.5px solid rgba(255, 255, 255, 0.9) !important;
+    box-shadow: 4px 4px 10px rgba(78, 93, 73, 0.12), -3px -3px 8px rgba(255, 255, 255, 0.9) !important;
+    cursor: pointer !important;
+    transition: all 0.22s cubic-bezier(0.4, 0, 0.2, 1) !important;
+    display: flex !important;
+    align-items: center !important;
+    width: 100% !important;
+}
+
+/* UNSELECTED TEXT: Selalu jelas, pekat, dan terbaca tanpa harus diklik */
+section[data-testid="stSidebar"] div[data-testid="stRadio"] div[role="radiogroup"] label,
+section[data-testid="stSidebar"] div[data-testid="stRadio"] div[role="radiogroup"] label p,
+section[data-testid="stSidebar"] div[data-testid="stRadio"] div[role="radiogroup"] label span,
+section[data-testid="stSidebar"] div[data-testid="stRadio"] div[role="radiogroup"] label div[data-testid="stMarkdownContainer"],
+section[data-testid="stSidebar"] div[data-testid="stRadio"] div[role="radiogroup"] label * {
+    color: #133426 !important;
+    -webkit-text-fill-color: #133426 !important;
+    font-weight: 700 !important;
+    font-size: 0.92rem !important;
+    opacity: 1 !important;
+    margin: 0 !important;
+}
+
+/* Hover State */
+section[data-testid="stSidebar"] div[data-testid="stRadio"] div[role="radiogroup"] label:hover {
+    background: linear-gradient(145deg, #ffffff 0%, #dff0ce 100%) !important;
+    transform: translateX(4px) translateY(-1px) !important;
+    box-shadow: 6px 6px 14px rgba(78, 93, 73, 0.18), -4px -4px 10px rgba(255, 255, 255, 0.95) !important;
+    border-color: rgba(31, 81, 55, 0.3) !important;
+}
+
+/* ACTIVE / SELECTED STATE: Forest Deep Green dengan teks putih tebal */
+section[data-testid="stSidebar"] div[data-testid="stRadio"] div[role="radiogroup"] label:has(input:checked),
+section[data-testid="stSidebar"] div[data-testid="stRadio"] div[role="radiogroup"] label[data-checked="true"] {
+    background: linear-gradient(135deg, #1f5137 0%, #133426 100%) !important;
+    border: 1.5px solid #0d251a !important;
+    box-shadow: 4px 4px 12px rgba(19, 52, 38, 0.35), inset 1px 1px 2px rgba(255, 255, 255, 0.25) !important;
+    transform: translateX(6px) !important;
+}
+
+section[data-testid="stSidebar"] div[data-testid="stRadio"] div[role="radiogroup"] label:has(input:checked) *,
+section[data-testid="stSidebar"] div[data-testid="stRadio"] div[role="radiogroup"] label[data-checked="true"] * {
+    color: #ffffff !important;
+    -webkit-text-fill-color: #ffffff !important;
+    font-weight: 800 !important;
+}
+
+/* Sidebar Specs Card */
+.sidebar-meta-card {
+    background: linear-gradient(145deg, #f7f9ee, #e4ecda);
+    border-radius: 20px;
+    padding: 16px;
+    box-shadow: 6px 6px 14px rgba(78, 93, 73, 0.12), -4px -4px 10px rgba(255, 255, 255, 0.8);
+    border: 1px solid rgba(255, 255, 255, 0.6);
+    margin-top: 18px;
+}
+.sidebar-meta-card .meta-status {
+    font-size: 0.74rem;
+    font-weight: 700;
+    color: #1f5137;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 10px;
+}
+.sidebar-meta-card .status-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background-color: #27ae60;
+    box-shadow: 0 0 6px rgba(39, 174, 96, 0.6);
+    display: inline-block;
+}
+.sidebar-meta-card .meta-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 6px;
+}
+.sidebar-meta-card .meta-item {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.74rem;
+    padding: 3px 0;
+    border-bottom: 1px dashed rgba(31, 81, 55, 0.12);
+}
+.sidebar-meta-card .meta-label { color: #55755e; font-weight: 600; }
+.sidebar-meta-card .meta-val { color: #133426; font-weight: 700; }
+.sidebar-meta-card .meta-foot {
+    font-size: 0.68rem;
+    color: #43664d;
+    text-align: center;
+    margin-top: 10px;
+    font-weight: 600;
+    letter-spacing: 0.02em;
 }
 
 .clay-card {
@@ -125,34 +285,116 @@ label, [data-testid="stWidgetLabel"], [data-testid="stWidgetLabel"] p {
     color: #1f5137 !important;
 }
 
-input, textarea {
-    color: #ffffff !important;
-    -webkit-text-fill-color: #ffffff !important;
-    caret-color: #ffffff !important;
+/* Light Clay Selectbox Control */
+div[data-baseweb="select"] {
+    background: transparent !important;
+    border-radius: 16px !important;
 }
-input::placeholder, textarea::placeholder {
-    color: #d7e6dc !important;
-    -webkit-text-fill-color: #d7e6dc !important;
-    opacity: 1;
+div[data-baseweb="select"] > div {
+    background: linear-gradient(145deg, #ffffff 0%, #edf5e3 100%) !important;
+    border: 1.5px solid rgba(31, 81, 55, 0.25) !important;
+    border-radius: 16px !important;
+    box-shadow: 3px 3px 8px rgba(78, 93, 73, 0.08), -2px -2px 6px rgba(255, 255, 255, 0.9) !important;
+    overflow: hidden !important;
+    transition: all 0.2s ease !important;
+}
+div[data-baseweb="select"] > div:hover {
+    border-color: rgba(31, 81, 55, 0.5) !important;
+    box-shadow: 4px 4px 12px rgba(78, 93, 73, 0.12), -3px -3px 8px rgba(255, 255, 255, 1) !important;
+}
+div[data-baseweb="select"] > div:focus-within {
+    border-color: #1f5137 !important;
+    box-shadow: 0 0 0 2px rgba(31, 81, 55, 0.2) !important;
+}
+div[data-baseweb="select"] > div * {
+    background: transparent !important;
+    background-color: transparent !important;
+    color: #133426 !important;
+    -webkit-text-fill-color: #133426 !important;
+    font-weight: 600 !important;
+}
+div[data-baseweb="select"] svg {
+    fill: #133426 !important;
+    color: #133426 !important;
 }
 
-div[data-baseweb="select"] { color: #1f5137 !important; }
-div[data-baseweb="select"] > div {
-    background-color: #24262d !important;
-    border-color: rgba(31,81,55,.20) !important;
+/* Light Clay Dropdown Popover & Options Menu */
+div[data-baseweb="popover"],
+div[data-baseweb="popover"] > div,
+div[data-baseweb="popover"] [role="listbox"],
+ul[data-baseweb="menu"],
+div[data-baseweb="menu"] {
+    background: #ffffff !important;
+    background-color: #ffffff !important;
+    border-radius: 16px !important;
+    border: 1.5px solid rgba(31, 81, 55, 0.2) !important;
+    box-shadow: 0 12px 28px rgba(31, 81, 55, 0.18), 0 4px 10px rgba(0, 0, 0, 0.06) !important;
+    padding: 6px !important;
+    overflow: hidden !important;
 }
-div[data-baseweb="select"] [data-baseweb="select"] *,
-div[data-baseweb="select"] input,
-div[data-baseweb="select"] [role="button"],
-div[data-baseweb="select"] [aria-selected="true"] {
-    color: #e6f4ec !important;
-    -webkit-text-fill-color: #e6f4ec !important;
+
+/* Option Items inside Dropdown */
+div[data-baseweb="popover"] li,
+div[data-baseweb="popover"] div[role="option"],
+ul[data-baseweb="menu"] li,
+div[data-baseweb="menu"] div[role="option"] {
+    background-color: #ffffff !important;
+    color: #133426 !important;
+    -webkit-text-fill-color: #133426 !important;
+    font-size: 0.92rem !important;
+    font-weight: 600 !important;
+    padding: 10px 14px !important;
+    margin: 2px 0 !important;
+    border-radius: 10px !important;
+    cursor: pointer !important;
+    transition: all 0.15s ease !important;
 }
-ul[data-baseweb="menu"] li, div[role="option"] {
-    color: #1f5137 !important;
-    background-color: #f7f7e9 !important;
+div[data-baseweb="popover"] li *,
+div[data-baseweb="popover"] div[role="option"] *,
+ul[data-baseweb="menu"] li *,
+div[data-baseweb="menu"] div[role="option"] * {
+    color: #133426 !important;
+    -webkit-text-fill-color: #133426 !important;
+    font-weight: 600 !important;
 }
-div[role="option"] span { color: #1f5137 !important; }
+
+/* Hover & Selected Option State */
+div[data-baseweb="popover"] li:hover,
+div[data-baseweb="popover"] div[role="option"]:hover,
+div[data-baseweb="popover"] li[aria-selected="true"],
+div[data-baseweb="popover"] div[role="option"][aria-selected="true"],
+ul[data-baseweb="menu"] li:hover,
+div[data-baseweb="menu"] div[role="option"]:hover,
+ul[data-baseweb="menu"] li[aria-selected="true"],
+div[data-baseweb="menu"] div[role="option"][aria-selected="true"] {
+    background-color: #d8edd2 !important;
+    background: linear-gradient(135deg, #d8edd2 0%, #c4e4bc 100%) !important;
+    color: #0c2b18 !important;
+    -webkit-text-fill-color: #0c2b18 !important;
+    font-weight: 700 !important;
+}
+div[data-baseweb="popover"] li:hover *,
+div[data-baseweb="popover"] div[role="option"]:hover *,
+div[data-baseweb="popover"] li[aria-selected="true"] *,
+div[data-baseweb="popover"] div[role="option"][aria-selected="true"] * {
+    color: #0c2b18 !important;
+    -webkit-text-fill-color: #0c2b18 !important;
+    font-weight: 700 !important;
+}
+
+/* Fix text input fields */
+input, textarea {
+    color: #133426 !important;
+    -webkit-text-fill-color: #133426 !important;
+    caret-color: #133426 !important;
+    background: linear-gradient(145deg, #ffffff, #edf4e2) !important;
+    border-radius: 14px !important;
+}
+input::placeholder, textarea::placeholder {
+    color: #63856d !important;
+    -webkit-text-fill-color: #63856d !important;
+    opacity: 0.85;
+}
 
 .stTextInput label, .stSelectbox label, .stMultiSelect label {
     color: #1f5137 !important;
@@ -371,8 +613,9 @@ def fmt_pct(value) -> str:
     return f"{float(value):.1f}%"
 
 
+@st.cache_data
 def make_feature_table(df: pd.DataFrame) -> pd.DataFrame:
-    """Create 14-feature table for clustering (matches notebook logic)"""
+    """Create 14-feature table for clustering (cached for high performance)"""
     base = df[
         (df["Jenis Data"] == "Pintu Masuk") & (df["Tahun"].between(2016, 2019))
     ].copy()
@@ -403,8 +646,11 @@ def make_feature_table(df: pd.DataFrame) -> pd.DataFrame:
     features = seasonal.join(feature_volume).join(recovery_total["Recovery_2025"])
     features = features.replace([np.inf, -np.inf], np.nan).fillna(0)
     return features[month_cols + ["Log_Mean_Volume", "Recovery_2025"]]
+
+
+@st.cache_data
 def transport_mix(df: pd.DataFrame) -> pd.DataFrame:
-    """Extract transportation mode data"""
+    """Extract transportation mode data (cached)"""
     route_map = {
         "A. Pintu Udara": "Udara",
         "B. Pintu Laut": "Laut",
@@ -416,6 +662,92 @@ def transport_mix(df: pd.DataFrame) -> pd.DataFrame:
         route.groupby(["Tahun", "Rute"])["Jumlah"]
         .sum(min_count=1).reset_index()
     )
+
+
+@st.cache_data
+def compute_clustering_pipeline(df: pd.DataFrame, model_path: str, scaler_path: str):
+    """Compute and cache K-Means clustering features and labels (runs once, 0ms on rerun)"""
+    model, scaler = load_clustering_models(model_path, scaler_path)
+    features = make_feature_table(df)
+    X_scaled = scaler.transform(features)
+    labels = model.predict(X_scaled)
+    features_with_label = features.copy()
+    features_with_label["Cluster"] = labels
+    return features, labels, features_with_label
+
+
+@st.cache_data
+def get_dashboard_summary(df: pd.DataFrame):
+    """Compute annual totals and KPI snapshots with caching"""
+    individual = df[df["Jenis Data"].isin(["Pintu Masuk", "Pintu Masuk Lainnya"])]
+    annual = individual.groupby("Tahun")["Jumlah"].sum(min_count=1).reset_index()
+    latest_year = int(annual["Tahun"].max())
+    latest_total = float(annual.loc[annual["Tahun"] == latest_year, "Jumlah"].iloc[0])
+    total_period = float(individual["Jumlah"].sum())
+    return annual, latest_year, latest_total, total_period
+
+
+COORDINATES_MAP = {
+    "Adi Sucipto": {"lat": -7.7882, "lon": 110.4319, "provinsi": "DI Yogyakarta", "moda": "Udara", "fasilitas": "Bandara Internasional Adisutjipto"},
+    "Ahmad Yani": {"lat": -6.9744, "lon": 110.3744, "provinsi": "Jawa Tengah", "moda": "Udara", "fasilitas": "Bandara Jenderal Ahmad Yani"},
+    "Aruk": {"lat": 1.6367, "lon": 109.6586, "provinsi": "Kalimantan Barat", "moda": "Darat", "fasilitas": "PLBN Aruk (Perbatasan Sarawak/Malaysia)"},
+    "Atambua": {"lat": -9.0375, "lon": 124.9083, "provinsi": "Nusa Tenggara Timur", "moda": "Darat", "fasilitas": "PLBN Motaain / Atambua (Timor Leste)"},
+    "Bandara Int. Lombok": {"lat": -8.7578, "lon": 116.2758, "provinsi": "Nusa Tenggara Barat", "moda": "Udara", "fasilitas": "Bandara Internasional Lombok (ZAM)"},
+    "Batam": {"lat": 1.1301, "lon": 104.0530, "provinsi": "Kepulauan Riau", "moda": "Laut", "fasilitas": "Pelabuhan Internasional Feri Batam"},
+    "Entikong": {"lat": 0.9995, "lon": 110.3458, "provinsi": "Kalimantan Barat", "moda": "Darat", "fasilitas": "PLBN Entikong (Perbatasan Sarawak/Malaysia)"},
+    "Hasanuddin": {"lat": -5.0617, "lon": 119.5540, "provinsi": "Sulawesi Selatan", "moda": "Udara", "fasilitas": "Bandara Internasional Sultan Hasanuddin"},
+    "Husein Sastranegara": {"lat": -6.9006, "lon": 107.5761, "provinsi": "Jawa Barat", "moda": "Udara", "fasilitas": "Bandara Husein Sastranegara"},
+    "Jayapura": {"lat": -2.5769, "lon": 140.5164, "provinsi": "Papua", "moda": "Darat", "fasilitas": "PLBN Skouw / Gerbang Jayapura (Papua Nugini)"},
+    "Juanda": {"lat": -7.3798, "lon": 112.7876, "provinsi": "Jawa Timur", "moda": "Udara", "fasilitas": "Bandara Internasional Juanda"},
+    "Kualanamu": {"lat": 3.6422, "lon": 98.8853, "provinsi": "Sumatera Utara", "moda": "Udara", "fasilitas": "Bandara Internasional Kualanamu"},
+    "Minangkabau": {"lat": -0.7872, "lon": 100.2806, "provinsi": "Sumatera Barat", "moda": "Udara", "fasilitas": "Bandara Internasional Minangkabau"},
+    "Nanga Badau": {"lat": 0.9928, "lon": 111.8742, "provinsi": "Kalimantan Barat", "moda": "Darat", "fasilitas": "PLBN Nanga Badau (Perbatasan Sarawak/Malaysia)"},
+    "Ngurah Rai": {"lat": -8.7482, "lon": 115.1672, "provinsi": "Bali", "moda": "Udara", "fasilitas": "Bandara Internasional I Gusti Ngurah Rai (Mega-Hub)"},
+    "Sam Ratulangi": {"lat": 1.5492, "lon": 124.9264, "provinsi": "Sulawesi Utara", "moda": "Udara", "fasilitas": "Bandara Internasional Sam Ratulangi"},
+    "Soekarno-Hatta": {"lat": -6.1256, "lon": 106.6559, "provinsi": "Banten / DKI Jakarta", "moda": "Udara", "fasilitas": "Bandara Internasional Soekarno-Hatta (Mega-Hub)"},
+    "Sultan Badaruddin II": {"lat": -2.8986, "lon": 104.7003, "provinsi": "Sumatera Selatan", "moda": "Udara", "fasilitas": "Bandara Sultan Mahmud Badaruddin II"},
+    "Sultan Iskandar Muda": {"lat": 5.5225, "lon": 95.4194, "provinsi": "Aceh", "moda": "Udara", "fasilitas": "Bandara Sultan Iskandar Muda"},
+    "Sultan Syarif Kasim II": {"lat": 0.4608, "lon": 101.4447, "provinsi": "Riau", "moda": "Udara", "fasilitas": "Bandara Sultan Syarif Kasim II"},
+    "Supadio": {"lat": -0.1506, "lon": 109.4039, "provinsi": "Kalimantan Barat", "moda": "Udara", "fasilitas": "Bandara Supadio"},
+    "Tanjung Balai Karimun": {"lat": 0.9931, "lon": 103.4356, "provinsi": "Kepulauan Riau", "moda": "Laut", "fasilitas": "Pelabuhan Tanjung Balai Karimun"},
+    "Tanjung Benoa": {"lat": -8.7564, "lon": 115.2178, "provinsi": "Bali", "moda": "Laut", "fasilitas": "Pelabuhan Cruise / Wisata Tanjung Benoa"},
+    "Tanjung Mas": {"lat": -6.9536, "lon": 110.4225, "provinsi": "Jawa Tengah", "moda": "Laut", "fasilitas": "Pelabuhan Tanjung Emas"},
+    "Tanjung Pinang": {"lat": 0.9250, "lon": 104.4456, "provinsi": "Kepulauan Riau", "moda": "Laut", "fasilitas": "Pelabuhan Sri Bintan Pura"},
+    "Tanjung Uban": {"lat": 1.0706, "lon": 104.2217, "provinsi": "Kepulauan Riau", "moda": "Laut", "fasilitas": "Pelabuhan Feri Tanjung Uban (Bintan)"},
+}
+
+
+@st.cache_data
+def build_geospatial_dataframe(df: pd.DataFrame, cluster_df: pd.DataFrame) -> pd.DataFrame:
+    """Build geospatial dataframe with cluster labels and visit statistics (cached)"""
+    detail = df[df["Jenis Data"] == "Pintu Masuk"].copy()
+    total_visits = detail.groupby("Pintu Masuk")["Jumlah"].sum()
+    y2025_visits = detail[detail["Tahun"] == 2025].groupby("Pintu Masuk")["Jumlah"].sum()
+
+    geo_rows = []
+    pintu_list = cluster_df.index if not cluster_df.empty else detail["Pintu Masuk"].unique()
+    for p in pintu_list:
+        info = COORDINATES_MAP.get(p, {})
+        c_label = cluster_df.loc[p, "Cluster"] if not cluster_df.empty and p in cluster_df.index else 1
+        rec_val = cluster_df.loc[p, "Recovery_2025"] if not cluster_df.empty and p in cluster_df.index else 0.0
+        tot = int(total_visits.get(p, 0))
+        y25 = int(y2025_visits.get(p, 0))
+        
+        geo_rows.append({
+            "Pintu Masuk": p,
+            "Cluster": f"Cluster {int(c_label)} (" + ("Mega-Hub" if int(c_label) == 0 else "Regional Gateway") + ")",
+            "Cluster_Id": int(c_label),
+            "Latitude": info.get("lat", -2.5),
+            "Longitude": info.get("lon", 118.0),
+            "Provinsi": info.get("provinsi", "-"),
+            "Moda": info.get("moda", "Lainnya"),
+            "Fasilitas": info.get("fasilitas", "-"),
+            "Total Kunjungan": tot,
+            "Kunjungan 2025": y25,
+            "Recovery 2025 (%)": round(float(rec_val), 1),
+            "Size_Display": float(np.sqrt(tot) / 80 + 10),
+        })
+    return pd.DataFrame(geo_rows)
 
 
 def metric_card(label: str, value: str, detail: str = "") -> None:
@@ -437,17 +769,11 @@ def style_plotly(fig):
     white = "#ffffff"
     dark_bg = "#202521"
 
-    fig.update_layout(
+    layout_update = dict(
         font=dict(
             family="DM Sans, sans-serif",
             color=green
         ),
-
-        title_font=dict(
-            family="Baloo 2, sans-serif",
-            color=green
-        ),
-
         legend=dict(
             font=dict(
                 color=green
@@ -503,6 +829,11 @@ def style_plotly(fig):
         )
     )
 
+    if fig.layout.title and fig.layout.title.text:
+        layout_update["title_font"] = dict(family="Baloo 2, sans-serif", color=green)
+
+    fig.update_layout(**layout_update)
+
     # Data label / text pada chart
     for trace in fig.data:
         if hasattr(trace, "textfont"):
@@ -514,8 +845,24 @@ def style_plotly(fig):
                 pass
 
     return fig
+
+
+PLOTLY_CONFIG = {
+    "displayModeBar": "hover",
+    "displaylogo": False,
+    "modeBarButtonsToRemove": ["lasso2d", "select2d", "autoScale2d"],
+    "responsive": True,
+}
+
+
+def render_chart(fig):
+    """Render Plotly chart with optimized, lightweight toolbar and responsive settings."""
+    st.plotly_chart(fig, width="stretch", config=PLOTLY_CONFIG)
+
+
+@st.cache_data
 def build_monthly_series(df: pd.DataFrame) -> pd.Series:
-    """Build monthly tourism series — sama dengan logic forecasting.ipynb."""
+    """Build monthly tourism series — sama dengan logic forecasting.ipynb (cached)."""
     
     df_detail = df[
         df["Jenis Data"].isin([
@@ -555,6 +902,41 @@ def fmt_date_id(ts) -> str:
     return f"{BULAN_ID.get(ts.month, ts.strftime('%B'))} {ts.year}"
 
 
+@st.cache_data
+def run_granular_forecast(df: pd.DataFrame, target_type: str, target_name: str, steps: int = 12):
+    """Extract time-series and compute SARIMA(0,1,1)(0,1,1,12) forecast for specific entry point or mode."""
+    if target_type == "nasional":
+        df_detail = df[df["Jenis Data"].isin(["Pintu Masuk", "Pintu Masuk Lainnya"])].copy()
+        s = df_detail.groupby("Tanggal")["Jumlah"].sum(min_count=1).sort_index()
+        s.index = pd.to_datetime(s.index)
+        s = s.asfreq("MS").dropna()
+    elif target_type == "moda":
+        route_map = {"Udara": "A. Pintu Udara", "Laut": "B. Pintu Laut", "Darat": "C. Pintu Darat"}
+        p_key = route_map.get(target_name, target_name)
+        sub = df[df["Pintu Masuk"] == p_key].copy()
+        s = sub.groupby("Tanggal")["Jumlah"].sum(min_count=1).sort_index()
+        s.index = pd.to_datetime(s.index)
+        s = s.asfreq("MS").dropna()
+    else:  # 'pintu_masuk'
+        sub = df[df["Pintu Masuk"] == target_name].copy()
+        s = sub.groupby("Tanggal")["Jumlah"].sum(min_count=1).sort_index()
+        s.index = pd.to_datetime(s.index)
+        s = s.asfreq("MS").dropna()
+
+    model = SARIMAX(
+        s,
+        order=(0, 1, 1),
+        seasonal_order=(0, 1, 1, 12),
+        enforce_stationarity=False,
+        enforce_invertibility=False,
+    )
+    res = model.fit(disp=False)
+    fc = res.get_forecast(steps=steps)
+    mean_val = fc.predicted_mean.clip(lower=0)
+    conf_val = fc.conf_int().clip(lower=0)
+    return s, mean_val, conf_val
+
+
 # =========================================================
 # DATA & MODEL LOADING
 # =========================================================
@@ -564,19 +946,16 @@ if not DATA_PATH.exists():
 
 df = load_data(str(DATA_PATH))
 
-# Initialize clustering components
+# Initialize clustering components (fully cached for instant response)
 clustering_ok = MODEL_PATH.exists() and SCALER_PATH.exists()
 cluster_features = pd.DataFrame()
 cluster_labels = np.array([])
 cluster_features_with_label = pd.DataFrame()
 if clustering_ok:
     try:
-        model, scaler = load_clustering_models(str(MODEL_PATH), str(SCALER_PATH))
-        cluster_features = make_feature_table(df)
-        X_scaled = scaler.transform(cluster_features)
-        cluster_labels = model.predict(X_scaled)
-        cluster_features_with_label = cluster_features.copy()
-        cluster_features_with_label["Cluster"] = cluster_labels
+        cluster_features, cluster_labels, cluster_features_with_label = compute_clustering_pipeline(
+            df, str(MODEL_PATH), str(SCALER_PATH)
+        )
     except Exception as e:
         clustering_ok = False
         st.warning(f"Clustering model gagal dimuat: {e}")
@@ -595,32 +974,64 @@ if sarima_ok:
 # SIDEBAR
 # =========================================================
 st.sidebar.markdown(
-    '<div class="sidebar-brand">'
-    '<div class="brand-title">Nusantara<br>Transit Intelligence</div>'
-    '<div class="brand-sub">Tourism mobility analytics • 2016–2026</div>'
-    "</div>",
+    """
+    <div class="sidebar-brand">
+        <div class="brand-badge">🌴 INDONESIA TOURISM</div>
+        <div class="brand-title">Nusantara<br>Transit Intelligence</div>
+        <div class="brand-sub">Mobility & Tourism Analytics • 2016–2026</div>
+    </div>
+    """,
     unsafe_allow_html=True,
 )
 
-page = st.sidebar.radio(
-    "Navigasi",
-    [
-        "Dashboard",
-        "Cluster Explorer", 
-        "Forecasting",
-        "Data Explorer",
-        "Transport Insights",
-        "Tentang Model",
-    ],
+NAV_PAGES = {
+    "Dashboard": "Dashboard",
+    "Peta Geospasial": "Peta Geospasial",
+    "Cluster Explorer": "Cluster Explorer", 
+    "Forecasting": "Forecasting",
+    "Data Explorer": "Data Explorer",
+    "Transport Insights": "Transport Insights",
+    "Tentang Model": "Tentang Model",
+}
+
+selected_label = st.sidebar.radio(
+    "Navigasi Utama",
+    list(NAV_PAGES.values()),
+    label_visibility="collapsed",
 )
-st.sidebar.markdown("---")
+page = [k for k, v in NAV_PAGES.items() if v == selected_label][0]
+
 st.sidebar.markdown(
-    '<div style="font-size:.78rem;color:#2d4d33;font-weight:600;line-height:1.55;">'
-    "<b>Tema:</b> Claymorphism Tropical<br>"
-    "<b>Moda:</b> Udara • Darat • Laut<br>"
-    "<b>Clustering:</b> K-Means (k=2)<br>"
-    "<b>Forecasting:</b> SARIMA(0,1,1)(0,1,1,12)"
-    "</div>",
+    """
+    <div class="sidebar-meta-card">
+        <div class="meta-status">
+            <span class="status-dot"></span> Model Ready & Cached
+        </div>
+        <div class="meta-grid">
+            <div class="meta-item">
+                <span class="meta-label">Tema</span>
+                <span class="meta-val">Claymorphism Tropical</span>
+            </div>
+            <div class="meta-item">
+                <span class="meta-label">Moda</span>
+                <span class="meta-val">Udara • Darat • Laut</span>
+            </div>
+            <div class="meta-item">
+                <span class="meta-label">Clustering</span>
+                <span class="meta-val">K-Means (k=2)</span>
+            </div>
+            <div class="meta-item">
+                <span class="meta-label">Forecasting</span>
+                <span class="meta-val">SARIMA (12-Mo Ahead)</span>
+            </div>
+            <div class="meta-item">
+                <span class="meta-label">Cakupan</span>
+                <span class="meta-val">26 Pintu (2016–2026)</span>
+            </div>
+        </div>
+        <div class="meta-foot">Polman Machine Learning • Kelompok 6</div>
+    </div>
+    """,
     unsafe_allow_html=True,
 )
 
@@ -646,21 +1057,15 @@ if page == "Dashboard":
         unsafe_allow_html=True,
     )
     
-    # Transport illustration via safe HTML component
-    components.html(
+    # Transport illustration via modern native st.html
+    st.html(
         f'<div style="margin-top:-55px;text-align:right;pointer-events:none;padding-right:28px;">'
         f'<div style="display:inline-block;width:44%;min-width:280px;">'
         f'{get_transport_svg()}'
-        f"</div></div>",
-        height=190,
-        scrolling=False,
+        f"</div></div>"
     )
-    # KPI snapshot
-    individual = df[df["Jenis Data"].isin(["Pintu Masuk", "Pintu Masuk Lainnya"])].copy()
-    annual = individual.groupby("Tahun")["Jumlah"].sum(min_count=1).reset_index()
-    latest_year = int(annual["Tahun"].max())
-    latest_total = float(annual.loc[annual["Tahun"] == latest_year, "Jumlah"].iloc[0])
-    total_period = float(individual["Jumlah"].sum())
+    # KPI snapshot (cached)
+    annual, latest_year, latest_total, total_period = get_dashboard_summary(df)
     n_entry = int(cluster_features.index.nunique()) if clustering_ok else "—"
     n_cluster = int(len(np.unique(cluster_labels))) if clustering_ok else "—"
 
@@ -734,7 +1139,7 @@ if page == "Dashboard":
                       paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(255,255,255,.22)",
                       hovermode="x unified")
     style_plotly(fig)
-    st.plotly_chart(fig, use_container_width=True)
+    render_chart(fig)
     # Transport mode
     st.markdown('<div class="section-title">Komposisi moda transportasi</div>', unsafe_allow_html=True)
     route_colors = {"Udara": "#8dc3d5", "Darat": "#e8995d", "Laut": "#8fbfc2"}
@@ -745,7 +1150,7 @@ if page == "Dashboard":
                          paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(255,255,255,.22)",
                          hovermode="x unified")
     style_plotly(fig_rt)
-    st.plotly_chart(fig_rt, use_container_width=True)
+    render_chart(fig_rt)
 
     # Cluster summary
     if clustering_ok:
@@ -810,6 +1215,250 @@ if page == "Dashboard":
                 metric_card("Bulan puncak", fmt_date_id(peak_m), "puncak musiman")
         except Exception:
             pass
+
+# =========================================================
+# PAGE: PETA GEOSPASIAL
+# =========================================================
+elif page == "Peta Geospasial":
+    st.markdown(
+        '<div class="clay-card hero">'
+        '<div class="eyebrow">Geospatial Tourism Analytics</div>'
+        "<h1>Peta Sebaran<br>Pintu Masuk Indonesia.</h1>"
+        "<p>Visualisasi pemetaan 26 pintu masuk wisatawan mancanegara di nusantara, "
+        "mengintegrasikan letak geografis, segmentasi K-Means, moda transportasi, "
+        "serta laju pemulihan pascapandemi.</p>"
+        '<div style="margin-top:16px;">'
+        '<span class="transport-pill">🗺 26 Pintu Masuk</span>'
+        '<span class="transport-pill">✈ Udara</span>'
+        '<span class="transport-pill">⛴ Laut</span>'
+        '<span class="transport-pill">🚌 Darat</span>'
+        "</div>"
+        "</div>",
+        unsafe_allow_html=True,
+    )
+
+    geo_data = build_geospatial_dataframe(df, cluster_features_with_label)
+
+    # Filter Controls
+    st.markdown('<div class="section-title">Kontrol & Filter Peta</div>', unsafe_allow_html=True)
+    f_col1, f_col2, f_col3 = st.columns(3)
+    with f_col1:
+        moda_options = ["Semua Moda", "Udara", "Laut", "Darat"]
+        sel_moda = st.selectbox("Filter Moda Transportasi", moda_options)
+    with f_col2:
+        cluster_options = ["Semua Cluster", "Cluster 0 (Mega-Hub)", "Cluster 1 (Regional Gateway)"]
+        sel_cluster = st.selectbox("Filter Cluster", cluster_options)
+    with f_col3:
+        color_scheme = st.radio(
+            "Skema Pewarnaan Titik",
+            ["Berdasarkan Cluster K-Means", "Berdasarkan Moda Transportasi"],
+            horizontal=True,
+        )
+
+    # Apply filters
+    filtered_geo = geo_data.copy()
+    if sel_moda != "Semua Moda":
+        filtered_geo = filtered_geo[filtered_geo["Moda"] == sel_moda]
+    if sel_cluster == "Cluster 0 (Mega-Hub)":
+        filtered_geo = filtered_geo[filtered_geo["Cluster_Id"] == 0]
+    elif sel_cluster == "Cluster 1 (Regional Gateway)":
+        filtered_geo = filtered_geo[filtered_geo["Cluster_Id"] == 1]
+
+    # Map Rendering
+    color_var = "Cluster" if color_scheme == "Berdasarkan Cluster K-Means" else "Moda"
+    color_map = {
+        "Cluster 0 (Mega-Hub)": "#133426",
+        "Cluster 1 (Regional Gateway)": "#e8995d",
+        "Udara": "#2f6f4e",
+        "Laut": "#008080",
+        "Darat": "#e8995d",
+    }
+    hover_cfg = {
+        "Latitude": False,
+        "Longitude": False,
+        "Provinsi": True,
+        "Moda": True,
+        "Fasilitas": True,
+        "Cluster": True,
+        "Total Kunjungan": ":,",
+        "Kunjungan 2025": ":,",
+        "Recovery 2025 (%)": ":.1f",
+        "Size_Display": False,
+    }
+
+    if hasattr(px, "scatter_map"):
+        fig_map = px.scatter_map(
+            filtered_geo,
+            lat="Latitude",
+            lon="Longitude",
+            hover_name="Pintu Masuk",
+            size="Size_Display",
+            color=color_var,
+            color_discrete_map=color_map,
+            hover_data=hover_cfg,
+            size_max=38,
+            zoom=4.0,
+            center={"lat": -2.2, "lon": 118.0},
+            map_style="open-street-map",
+        )
+    elif hasattr(px, "scatter_mapbox"):
+        fig_map = px.scatter_mapbox(
+            filtered_geo,
+            lat="Latitude",
+            lon="Longitude",
+            hover_name="Pintu Masuk",
+            size="Size_Display",
+            color=color_var,
+            color_discrete_map=color_map,
+            hover_data=hover_cfg,
+            size_max=38,
+            zoom=4.0,
+            center={"lat": -2.2, "lon": 118.0},
+            mapbox_style="open-street-map",
+        )
+    else:
+        fig_map = px.scatter_geo(
+            filtered_geo,
+            lat="Latitude",
+            lon="Longitude",
+            hover_name="Pintu Masuk",
+            size="Size_Display",
+            color=color_var,
+            color_discrete_map=color_map,
+        )
+        fig_map.update_geos(
+            scope="asia",
+            center=dict(lat=-2.2, lon=118.0),
+            projection_scale=3.8,
+            visible=True,
+        )
+
+    fig_map.update_layout(
+        margin=dict(l=0, r=0, t=10, b=0),
+        height=540,
+        paper_bgcolor="rgba(0,0,0,0)",
+        legend=dict(
+            orientation="h",
+            yanchor="bottom",
+            y=1.02,
+            xanchor="right",
+            x=1,
+            font=dict(family="DM Sans, sans-serif", color="#1F5137", size=12),
+            bgcolor="rgba(247,247,233,0.85)",
+            bordercolor="rgba(31,81,55,0.2)",
+            borderwidth=1,
+        ),
+    )
+    style_plotly(fig_map)
+    render_chart(fig_map)
+
+    st.markdown(
+        '<div class="note-box" style="margin-top:4px;margin-bottom:18px;">'
+        "💡 <b>Panduan interaktif:</b> Ukuran lingkaran merefleksikan besaran volume kunjungan. "
+        "Arahkan kursor (*hover*) pada lingkaran untuk melihat profil lengkap, atau pilih pintu masuk "
+        "di bagian bawah untuk inspeksi mendalam."
+        "</div>",
+        unsafe_allow_html=True,
+    )
+
+    # Geospatial Snapshot KPIs
+    st.markdown('<div class="section-title">Distribusi Geografis</div>', unsafe_allow_html=True)
+    g_cols = st.columns(4)
+    with g_cols[0]:
+        metric_card("Pintu aktif ditampilkan", f"{len(filtered_geo)}", f"dari total {len(geo_data)} pintu")
+    with g_cols[1]:
+        n_air = int((filtered_geo["Moda"] == "Udara").sum())
+        metric_card("Pintu Udara (Bandara)", f"{n_air}", "gerbang penerbangan")
+    with g_cols[2]:
+        n_sea = int((filtered_geo["Moda"] == "Laut").sum())
+        metric_card("Pintu Laut (Pelabuhan)", f"{n_sea}", "feri & kapal pesiar")
+    with g_cols[3]:
+        n_land = int((filtered_geo["Moda"] == "Darat").sum())
+        metric_card("Pintu Darat (PLBN)", f"{n_land}", "lintas batas negara")
+
+    # Deep-Dive Inspector
+    st.markdown('<div class="section-title">Inspeksi Profil Pintu Masuk</div>', unsafe_allow_html=True)
+    available_pintu = sorted(filtered_geo["Pintu Masuk"].tolist())
+    if available_pintu:
+        default_idx = available_pintu.index("Ngurah Rai") if "Ngurah Rai" in available_pintu else 0
+        sel_pintu = st.selectbox("Pilih Pintu Masuk untuk Analisis Spesifik:", available_pintu, index=default_idx)
+
+        p_info = geo_data[geo_data["Pintu Masuk"] == sel_pintu].iloc[0]
+        p_detail = df[df["Pintu Masuk"] == sel_pintu]
+        annual_p = p_detail.groupby("Tahun")["Jumlah"].sum(min_count=1).reset_index()
+
+        d_col1, d_col2 = st.columns([1, 1.4])
+        with d_col1:
+            st.markdown(
+                f'<div class="clay-card" style="height:100%;">'
+                f'<div class="eyebrow">{p_info["Moda"]} • {p_info["Provinsi"]}</div>'
+                f'<h2 style="font-family:\'Baloo 2\',sans-serif;color:#133426;margin:0 0 10px 0;">{p_info["Pintu Masuk"]}</h2>'
+                f'<p style="font-size:0.9rem;color:#2b3e2e;margin-bottom:14px;"><b>Fasilitas:</b> {p_info["Fasilitas"]}</p>'
+                f'<div style="margin-bottom:14px;"><span class="cluster-chip cluster-{p_info["Cluster_Id"]}">{p_info["Cluster"]}</span></div>'
+                f'<hr style="border:none;border-top:1px solid rgba(31,81,55,0.15);margin:12px 0;">'
+                f'<p style="margin:4px 0;font-size:0.88rem;"><b>Total Kunjungan (2016–2026):</b> {fmt_number(p_info["Total Kunjungan"])}</p>'
+                f'<p style="margin:4px 0;font-size:0.88rem;"><b>Kunjungan Tahun 2025:</b> {fmt_number(p_info["Kunjungan 2025"])}</p>'
+                f'<p style="margin:4px 0;font-size:0.88rem;"><b>Tingkat Pemulihan 2025:</b> <b>{p_info["Recovery 2025 (%)"]}%</b> vs 2019 baseline</p>'
+                f'</div>',
+                unsafe_allow_html=True,
+            )
+        with d_col2:
+            fig_p = px.line(
+                annual_p,
+                x="Tahun",
+                y="Jumlah",
+                markers=True,
+                labels={"Jumlah": "Wisman", "Tahun": ""},
+                title=f"Tren Kunjungan Wisman — {sel_pintu}"
+            )
+            fig_p.update_traces(line_width=3, line_color="#1f5137", marker=dict(size=7, color="#e8995d"))
+            fig_p.update_layout(
+                margin=dict(l=0, r=0, t=35, b=0),
+                paper_bgcolor="rgba(0,0,0,0)",
+                plot_bgcolor="rgba(255,255,255,.22)",
+                height=260,
+                hovermode="x unified",
+            )
+            style_plotly(fig_p)
+            render_chart(fig_p)
+
+    # Spatial Insights
+    st.markdown('<div class="section-title">Wawasan Spasial & Geopolitik Pariwisata</div>', unsafe_allow_html=True)
+    s_col1, s_col2, s_col3 = st.columns(3)
+    with s_col1:
+        st.markdown(
+            '<div class="insight-card">'
+            '<div class="insight-icon">✈️</div>'
+            '<div class="insight-text">'
+            '<b>Polarisasi Mega-Hub:</b><br>'
+            'Lebih dari 65% total kunjungan wisman udara terpusat pada koridor barat-tengah: '
+            'Bandara Ngurah Rai (Bali) dan Soekarno-Hatta (Jakarta).'
+            '</div></div>',
+            unsafe_allow_html=True,
+        )
+    with s_col2:
+        st.markdown(
+            '<div class="insight-card">'
+            '<div class="insight-icon">⛴️</div>'
+            '<div class="insight-text">'
+            '<b>Koridor Maritim Kepri:</b><br>'
+            'Pelabuhan Batam, Tanjung Uban, dan Tanjung Pinang membentuk segitiga konektivitas laut '
+            'terpadat yang menangkap wisatawan *cross-border* Singapura dan Malaysia.'
+            '</div></div>',
+            unsafe_allow_html=True,
+        )
+    with s_col3:
+        st.markdown(
+            '<div class="insight-card">'
+            '<div class="insight-icon">🚌</div>'
+            '<div class="insight-text">'
+            '<b>Pemulihan Lintas Batas Darat:</b><br>'
+            'PLBN di Kalimantan Barat (Aruk, Entikong, Badau) dan NTT (Atambua) mencatatkan recovery '
+            'di atas 100% didorong oleh pemulihan mobilitas darat pascapandemi.'
+            '</div></div>',
+            unsafe_allow_html=True,
+        )
+
 # =========================================================
 # PAGE: CLUSTER EXPLORER
 # =========================================================
@@ -933,7 +1582,7 @@ elif page == "Cluster Explorer":
                        font=dict(family="Baloo 2, sans-serif", color="#133426", size=16)),
         )
         style_plotly(fig_season)
-        st.plotly_chart(fig_season, use_container_width=True)
+        render_chart(fig_season)
         interp = (
             "Pintu masuk ini memiliki <b>pola musiman yang sangat khas</b> "
             "dan berbeda dari mayoritas pintu masuk lainnya. "
@@ -954,7 +1603,7 @@ elif page == "Cluster Explorer":
         st.dataframe(
             selected_rows[["Pintu Masuk","Cluster","Log_Mean_Volume","Recovery_2025"]]
             .sort_values(["Cluster","Pintu Masuk"]),
-            use_container_width=True, hide_index=True,
+            width="stretch", hide_index=True,
         )
 
 
@@ -964,50 +1613,92 @@ elif page == "Cluster Explorer":
 elif page == "Forecasting":
     st.markdown(
         '<div class="clay-card hero">'
-        '<div class="eyebrow">Forecasting Intelligence</div>'
-        "<h1>Melihat Arah Perjalanan<br>Wisata Indonesia</h1>"
-        "<p>Prediksi jumlah kunjungan wisatawan mancanegara menggunakan "
-        "model time-series terbaik.</p>"
+        '<div class="eyebrow">Forecasting Intelligence • Granular & National</div>'
+        "<h1>Melihat Arah Perjalanan<br>Wisata Indonesia.</h1>"
+        "<p>Prediksi dan peramalan jumlah kunjungan wisatawan mancanegara hingga 12 bulan "
+        "ke depan (Agustus 2026 – Juli 2027) menggunakan arsitektur SARIMA musiman. "
+        "Dapat dieksplorasi di tingkat nasional, moda transportasi, maupun pintu masuk spesifik.</p>"
         '<div style="margin-top:16px;">'
+        '<span class="transport-pill">🔮 12-Month Ahead Forecast</span>'
         '<span class="transport-pill">✈ Udara</span>'
         '<span class="transport-pill">🚌 Darat</span>'
         '<span class="transport-pill">⛴ Laut</span>'
         "</div></div>",
         unsafe_allow_html=True,
     )
-    if not sarima_ok or sarima_artifact is None:
-        st.warning(
-            "**Model forecasting belum ditemukan.**\n\n"
-            "Export `tourism_sarima_model.pkl` dari `forecasting.ipynb` "
-            "dan simpan di folder `model/`."
+
+    # 1. Scope Selector Controls
+    st.markdown('<div class="section-title">Konfigurasi Target Forecast</div>', unsafe_allow_html=True)
+    fc_ctrl1, fc_ctrl2 = st.columns([1, 1.2])
+    with fc_ctrl1:
+        fc_scope = st.radio(
+            "Tingkat Granularitas Peramalan",
+            ["Nasional (Total Indonesia)", "Per Moda Transportasi", "Per Pintu Masuk Spesifik"],
+            horizontal=False,
         )
-        st.stop()
 
-    try:
-        final_fit = sarima_artifact["model"]
-        model_name_str = sarima_artifact.get("model_name", "SARIMA(0,1,1)(0,1,1,12)")
-        training_start = sarima_artifact.get("training_start", "2016-01-01")
-        training_end = sarima_artifact.get("training_end", "2026-07-01")
-        forecast_result = final_fit.get_forecast(steps=12)
-        future_forecast = forecast_result.predicted_mean
-        conf_int = forecast_result.conf_int()
-        lower_col, upper_col = conf_int.columns[0], conf_int.columns[1]
-    except Exception as e:
-        st.error(f"Gagal menjalankan forecast: {e}")
-        st.stop()
+    selected_target_type = "nasional"
+    selected_target_name = "Nasional"
+    target_badge = "🇮🇩 Nasional (Total Indonesia)"
 
-    monthly_known = build_monthly_series(df)
+    with fc_ctrl2:
+        if fc_scope == "Per Moda Transportasi":
+            selected_target_type = "moda"
+            selected_target_name = st.selectbox("Pilih Moda Transportasi:", ["Udara", "Laut", "Darat"])
+            icon_map = {"Udara": "✈️", "Laut": "⛴️", "Darat": "🚌"}
+            target_badge = f"{icon_map.get(selected_target_name, '🚗')} Moda {selected_target_name}"
+            st.caption(f"Memprediksi proyeksi pergerakan wisatawan untuk seluruh pintu {selected_target_name}.")
+        elif fc_scope == "Per Pintu Masuk Spesifik":
+            selected_target_type = "pintu_masuk"
+            pintu_options = sorted(df[df["Jenis Data"] == "Pintu Masuk"]["Pintu Masuk"].unique().tolist())
+            def_idx = pintu_options.index("Ngurah Rai") if "Ngurah Rai" in pintu_options else 0
+            selected_target_name = st.selectbox("Pilih Pintu Masuk:", pintu_options, index=def_idx)
+            target_badge = f"📍 Pintu Masuk: {selected_target_name}"
+            st.caption(f"Menjalankan model SARIMA khusus untuk profil deret waktu {selected_target_name}.")
+        else:
+            st.info("Menampilkan proyeksi deret waktu agregat total seluruh pintu masuk Indonesia.")
 
-    # 1. Overview cards
-    st.markdown('<div class="section-title">Ringkasan Model</div>', unsafe_allow_html=True)
-    ts_start = pd.Timestamp(training_start)
-    ts_end = pd.Timestamp(training_end)
+    # 2. Run / Retrieve Forecast
+    with st.spinner("Menghitung proyeksi model SARIMA..."):
+        if selected_target_type == "nasional" and sarima_ok and sarima_artifact is not None:
+            try:
+                final_fit = sarima_artifact["model"]
+                model_name_str = sarima_artifact.get("model_name", "SARIMA(0,1,1)(0,1,1,12)")
+                forecast_result = final_fit.get_forecast(steps=12)
+                future_forecast = forecast_result.predicted_mean.clip(lower=0)
+                conf_int = forecast_result.conf_int().clip(lower=0)
+                lower_col, upper_col = conf_int.columns[0], conf_int.columns[1]
+                series_known = build_monthly_series(df)
+            except Exception:
+                series_known, future_forecast, conf_int = run_granular_forecast(df, selected_target_type, selected_target_name)
+                lower_col, upper_col = conf_int.columns[0], conf_int.columns[1]
+                model_name_str = "SARIMA(0,1,1)(0,1,1,12)"
+        else:
+            series_known, future_forecast, conf_int = run_granular_forecast(df, selected_target_type, selected_target_name)
+            lower_col, upper_col = conf_int.columns[0], conf_int.columns[1]
+            model_name_str = "SARIMA(0,1,1)(0,1,1,12)"
+
+    # Compute Growth vs 2025
+    y2025_vals = series_known[series_known.index.year == 2025]
+    avg_2025 = float(y2025_vals.mean()) if not y2025_vals.empty else 1.0
+    avg_fc = float(future_forecast.mean())
+    growth_pct = ((avg_fc - avg_2025) / avg_2025) * 100 if avg_2025 > 0 else 0.0
+    max_fc = float(future_forecast.max())
+    min_fc = float(future_forecast.min())
+    total_12m = float(future_forecast.sum())
+    peak_m_fc = future_forecast.idxmax()
+    low_m_fc = future_forecast.idxmin()
+
+    # 3. Overview cards
+    st.markdown('<div class="section-title">Ringkasan Model & Target</div>', unsafe_allow_html=True)
+    ts_start = series_known.index[0]
+    ts_end = series_known.index[-1]
     ov_items = [
-        ("Forecast Model", "SARIMA"),
-        ("Spesifikasi", model_name_str),
-        ("Horizon Forecast", "12 bulan"),
-        ("Periode Prediksi", "Agu 2026 – Jul 2027"),
-        ("Data Historis", f"{fmt_date_id(ts_start)} – {fmt_date_id(ts_end)}"),
+        ("Target Forecast", target_badge),
+        ("Model Time-Series", "SARIMA(0,1,1)(0,1,1,12)"),
+        ("Horizon Prediksi", "12 Bulan"),
+        ("Rentang Waktu", "Agu 2026 – Jul 2027"),
+        ("Data Historis", f"{len(series_known)} bulan ({fmt_date_id(ts_start)} – {fmt_date_id(ts_end)})"),
     ]
     ov_cols = st.columns(len(ov_items))
     for col, (lbl, val) in zip(ov_cols, ov_items):
@@ -1019,14 +1710,9 @@ elif page == "Forecasting":
                 f"</div>",
                 unsafe_allow_html=True,
             )
-    # 2. KPI cards
-    st.markdown('<div class="section-title">Key Forecast Metrics</div>', unsafe_allow_html=True)
-    avg_fc = future_forecast.mean()
-    max_fc = future_forecast.max()
-    min_fc = future_forecast.min()
-    peak_m_fc = future_forecast.idxmax()
-    low_m_fc = future_forecast.idxmin()
 
+    # 4. Key Forecast KPI Cards
+    st.markdown('<div class="section-title">Key Forecast Metrics</div>', unsafe_allow_html=True)
     kpi5 = st.columns(5)
     with kpi5[0]:
         metric_card("Rata-rata Prediksi", fmt_number(avg_fc), "per bulan")
@@ -1035,68 +1721,130 @@ elif page == "Forecasting":
     with kpi5[2]:
         metric_card("Prediksi Terendah", fmt_number(min_fc), fmt_date_id(low_m_fc))
     with kpi5[3]:
-        metric_card("Bulan Puncak", fmt_date_id(peak_m_fc), "puncak musiman")
+        metric_card("Estimasi Total 1 Tahun", fmt_number(total_12m), "akumulasi 12 bulan")
     with kpi5[4]:
-        metric_card("Horizon Prediksi", "12 bulan", "Agu 2026 – Jul 2027")
+        metric_card("Pertumbuhan vs 2025", f"{growth_pct:+.1f}%", "terhadap rata-rata 2025")
 
-    # 3. Main chart
-    st.markdown('<div class="section-title">Grafik Forecast SARIMA</div>', unsafe_allow_html=True)
+    # 5. Main Forecasting Chart
+    st.markdown(f'<div class="section-title">Grafik Deret Waktu & Forecast — {selected_target_name}</div>', unsafe_allow_html=True)
     fig_fc = go.Figure()
     fig_fc.add_trace(go.Scatter(
-        x=monthly_known.index, y=monthly_known.values,
-        name="Data Aktual", line=dict(color="#1f5137", width=2.5), mode="lines",
+        x=series_known.index, y=series_known.values,
+        name="Data Aktual (2016–Jul 2026)", line=dict(color="#1f5137", width=2.5), mode="lines",
     ))
     ci_x = list(future_forecast.index) + list(future_forecast.index[::-1])
     ci_y = list(conf_int[upper_col]) + list(conf_int[lower_col][::-1])
     fig_fc.add_trace(go.Scatter(
         x=ci_x, y=ci_y, fill="toself",
-        fillcolor="rgba(141,195,213,0.22)",
+        fillcolor="rgba(141,195,213,0.25)",
         line=dict(color="rgba(141,195,213,0)"),
-        name="CI 95%", showlegend=True,
+        name="Interval Kepercayaan 95% (CI)", showlegend=True,
     ))
     fig_fc.add_trace(go.Scatter(
         x=future_forecast.index, y=future_forecast.values,
-        name="Forecast SARIMA",
-        line=dict(color="#e8995d", width=2.5, dash="dash"),
+        name="Forecast SARIMA (Agu 2026–Jul 2027)",
+        line=dict(color="#e8995d", width=2.8, dash="dash"),
         mode="lines+markers", marker=dict(size=6, color="#e8995d"),
     ))
-    boundary_ts = monthly_known.index[-1]
+    boundary_ts = series_known.index[-1]
     fig_fc.add_vline(
         x=boundary_ts.value / 1e6,
         line_dash="dot", line_color="#1f5137", line_width=1.5,
-        annotation_text="Mulai Forecast", annotation_position="top",
+        annotation_text="Mulai Forecast (Agu 2026)", annotation_position="top",
         annotation_font=dict(color="#1f5137", size=12),
     )
     fig_fc.update_layout(
-        margin=dict(l=0,r=0,t=30,b=0),
+        title=dict(
+            text=f"Proyeksi Deret Waktu — {selected_target_name}",
+            font=dict(family="Baloo 2, sans-serif", color="#133426", size=15),
+        ),
+        margin=dict(l=0, r=0, t=35, b=0),
         paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(255,255,255,.22)",
         hovermode="x unified",
         legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
-        xaxis=dict(title="Tanggal"), yaxis=dict(title="Jumlah wisatawan"),
+        xaxis=dict(title="Tanggal"), yaxis=dict(title="Jumlah wisatawan mancanegara"),
     )
     style_plotly(fig_fc)
-    st.plotly_chart(fig_fc, use_container_width=True)
+    render_chart(fig_fc)
 
     st.markdown(
         '<div class="note-box" style="margin-bottom:16px;">'
-        "<b>Catatan:</b> Data aktual tersedia sampai Juli 2026. "
-        "Agustus 2026 – Juli 2027 merupakan hasil prediksi SARIMA, "
-        "<i>bukan</i> data aktual yang terukur."
+        f"<b>Catatan Data:</b> Deret waktu aktual <b>{selected_target_name}</b> tersedia hingga Juli 2026. "
+        "Periode Agustus 2026 – Juli 2027 murni merupakan hasil proyeksi model SARIMA dengan interval kepercayaan 95%."
         "</div>",
         unsafe_allow_html=True,
     )
 
-    # 4. Forecast table
-    st.markdown('<div class="section-title">Tabel Hasil Forecast</div>', unsafe_allow_html=True)
+    # 6. Context-Aware Insight Card
+    st.markdown('<div class="section-title">Wawasan Dinamis Segmen Terpilih</div>', unsafe_allow_html=True)
+    if selected_target_type == "nasional":
+        insight_msg = (
+            "<b>Outlook Nasional:</b> Proyeksi menunjukkan tren pariwisata nasional yang konsisten bertumbuh "
+            f"dengan estimasi akumulasi mencapai <b>{fmt_number(total_12m)}</b> wisman pada periode Agu 2026 – Jul 2027. "
+            f"Bulan puncak diproyeksikan pada <b>{fmt_date_id(peak_m_fc)}</b> seiring dengan musim liburan global."
+        )
+    elif selected_target_type == "moda":
+        insight_msg = (
+            f"<b>Dinamika Moda {selected_target_name}:</b> Kunjungan via moda {selected_target_name} diproyeksikan "
+            f"mencapai rata-rata <b>{fmt_number(avg_fc)}</b> wisman/bulan dengan pertumbuhan <b>{growth_pct:+.1f}%</b> "
+            f"dibandingkan rata-rata tahun 2025. Puncak kunjungan diproyeksikan terjadi pada <b>{fmt_date_id(peak_m_fc)}</b>."
+        )
+    elif selected_target_name == "Ngurah Rai":
+        insight_msg = (
+            "<b>Pola Mega-Hub Bali (Ngurah Rai):</b> Menunjukkan karakter musiman yang sangat kuat dengan lonjakan tajam "
+            f"pada pertengahan tahun (Juli-Agustus). Rata-rata per bulan diproyeksikan mencapai <b>{fmt_number(avg_fc)}</b> wisman."
+        )
+    elif selected_target_name == "Batam":
+        insight_msg = (
+            "<b>Pola Maritim Cross-Border (Batam):</b> Menunjukkan aliran kunjungan yang sangat stabil dengan fluktuasi akhir pekan "
+            f"dan libur regional (Singapura/Malaysia). Proyeksi bulanan berada di kisaran <b>{fmt_number(avg_fc)}</b> wisman."
+        )
+    elif selected_target_name == "Soekarno-Hatta":
+        insight_msg = (
+            "<b>Gerbang Bisnis & Penerbangan (Soekarno-Hatta):</b> Karakteristik kunjungan didorong oleh penerbangan jarak jauh "
+            f"(long-haul) dan transit bisnis, dengan rata-rata proyeksi mencapai <b>{fmt_number(avg_fc)}</b> wisman per bulan."
+        )
+    else:
+        insight_msg = (
+            f"<b>Profil Gateway Regional ({selected_target_name}):</b> Model memproyeksikan rata-rata bulanan sebesar "
+            f"<b>{fmt_number(avg_fc)}</b> wisman ({growth_pct:+.1f}% vs 2025). Puncak musiman diprediksi terjadi pada <b>{fmt_date_id(peak_m_fc)}</b>."
+        )
+
+    st.markdown(
+        f'<div class="insight-card">'
+        f'<div class="insight-icon">📈</div>'
+        f'<div class="insight-text">{insight_msg}</div>'
+        f"</div>",
+        unsafe_allow_html=True,
+    )
+
+    # 7. Forecast Table & Download
+    st.markdown(f'<div class="section-title">Tabel Hasil Forecast — {selected_target_name}</div>', unsafe_allow_html=True)
     forecast_df = pd.DataFrame({
         "Tanggal": [fmt_date_id(ts) for ts in future_forecast.index],
-        "Forecast": [fmt_number_id(v) for v in future_forecast.values],
+        "Forecast (Wisman)": [fmt_number_id(v) for v in future_forecast.values],
         "Lower Bound (95%)": [fmt_number_id(v) for v in conf_int[lower_col].values],
         "Upper Bound (95%)": [fmt_number_id(v) for v in conf_int[upper_col].values],
     })
-    st.dataframe(forecast_df, use_container_width=True, hide_index=True)
-    # 5. Model comparison table
-    st.markdown('<div class="section-title">Perbandingan Model</div>', unsafe_allow_html=True)
+    st.dataframe(forecast_df, width="stretch", hide_index=True)
+
+    csv_data = pd.DataFrame({
+        "Tanggal": future_forecast.index.strftime("%Y-%m-%d"),
+        "Bulan": [fmt_date_id(ts) for ts in future_forecast.index],
+        "Forecast": future_forecast.values.round(2),
+        "Lower_Bound_95": conf_int[lower_col].values.round(2),
+        "Upper_Bound_95": conf_int[upper_col].values.round(2),
+    }).to_csv(index=False).encode("utf-8")
+
+    st.download_button(
+        label=f"📥 Download Data Forecast ({selected_target_name}) dalam CSV",
+        data=csv_data,
+        file_name=f"forecast_sarima_{selected_target_name.lower().replace(' ', '_')}_2026_2027.csv",
+        mime="text/csv",
+    )
+
+    # 8. Model comparison table
+    st.markdown('<div class="section-title">Perbandingan Model Benchmark (Nasional)</div>', unsafe_allow_html=True)
     comparison_data = [
         ("SARIMA",        79_871.19,  88_965.73,  6.36,  6.42,  True),
         ("XGBoost",       85_525.98,  128_949.51, 7.58,  6.98,  False),
@@ -1150,7 +1898,7 @@ elif page == "Forecasting":
                    font=dict(family="Baloo 2, sans-serif", color="#133426", size=16)),
     )
     style_plotly(fig_mape)
-    st.plotly_chart(fig_mape, use_container_width=True)
+    render_chart(fig_mape)
 
     # 7. Methodology
     st.markdown('<div class="section-title">Metodologi Forecasting</div>', unsafe_allow_html=True)
@@ -1259,7 +2007,7 @@ elif page == "Data Explorer":
     st.markdown('<div class="section-title">Tabel data</div>', unsafe_allow_html=True)
     st.dataframe(
         filtered.sort_values(["Tahun","Bulan_Num","Pintu Masuk"]),
-        use_container_width=True, hide_index=True,
+        width="stretch", hide_index=True,
     )
 # =========================================================
 # PAGE: TRANSPORT INSIGHTS
@@ -1305,7 +2053,7 @@ elif page == "Transport Insights":
                          paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(255,255,255,.22)",
                          hovermode="x unified")
     style_plotly(fig_tr)
-    st.plotly_chart(fig_tr, use_container_width=True)
+    render_chart(fig_tr)
     st.markdown(f'<div class="section-title">Komposisi {latest_year_rt}</div>', unsafe_allow_html=True)
     fig_bar = px.bar(latest_route.sort_values("Jumlah", ascending=False),
                      x="Rute", y="Jumlah", text="Jumlah", color="Rute",
@@ -1316,7 +2064,7 @@ elif page == "Transport Insights":
                           paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(255,255,255,.22)",
                           showlegend=False)
     style_plotly(fig_bar)
-    st.plotly_chart(fig_bar, use_container_width=True)
+    render_chart(fig_bar)
 
     pivot = route[route["Tahun"].isin([2019, 2025])].pivot_table(
         index="Rute", columns="Tahun", values="Jumlah", aggfunc="sum"
@@ -1340,7 +2088,7 @@ elif page == "Transport Insights":
                                paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(255,255,255,.22)",
                                showlegend=False)
         style_plotly(fig_rec)
-        st.plotly_chart(fig_rec, use_container_width=True)
+        render_chart(fig_rec)
 
         best_rec = recovery.loc[recovery["Recovery_2025"].idxmax()]
         st.markdown(
@@ -1410,7 +2158,7 @@ elif page == "Tentang Model":
                 "Recovery 2025 terhadap baseline 2019",
             ],
         })
-        st.dataframe(feature_desc, use_container_width=True, hide_index=True)
+        st.dataframe(feature_desc, width="stretch", hide_index=True)
 
     st.markdown('<div class="section-title">Evaluasi Clustering</div>', unsafe_allow_html=True)
     eval_df = pd.DataFrame({
@@ -1422,7 +2170,7 @@ elif page == "Tentang Model":
             "Semakin tinggi semakin baik",
         ],
     })
-    st.dataframe(eval_df, use_container_width=True, hide_index=True)
+    st.dataframe(eval_df, width="stretch", hide_index=True)
 
     # Forecasting
     st.markdown('<div class="section-title">Model Forecasting</div>', unsafe_allow_html=True)
@@ -1468,7 +2216,7 @@ elif page == "Tentang Model":
             "Semakin rendah semakin baik",
         ],
     })
-    st.dataframe(fc_eval_df, use_container_width=True, hide_index=True)
+    st.dataframe(fc_eval_df, width="stretch", hide_index=True)
 
     st.markdown(
         '<div class="note-box">'

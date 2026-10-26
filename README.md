@@ -7,11 +7,12 @@ A comprehensive Streamlit application for analyzing and forecasting Indonesian t
 ### 🌟 Features
 
 1. **Dashboard** - Executive overview with key insights and trends
-2. **Cluster Explorer** - K-Means clustering analysis of entry points
-3. **Forecasting** - SARIMA time-series forecasting (12-month ahead)
-4. **Data Explorer** - Interactive data filtering and exploration
-5. **Transport Insights** - Transportation mode analysis (Air, Land, Sea)
-6. **Model Documentation** - Comprehensive model cards and methodology
+2. **Peta Geospasial** - Interactive geospatial mapping of 26 entry points with cluster & transport filters
+3. **Cluster Explorer** - K-Means clustering analysis of entry points
+4. **Forecasting** - Multi-level SARIMA time-series forecasting (National, Transport Mode, and Entry Point specific) with 12-month ahead predictions
+5. **Data Explorer** - Interactive data filtering and exploration
+6. **Transport Insights** - Transportation mode analysis (Air, Land, Sea)
+7. **Model Documentation** - Comprehensive model cards and methodology
 
 ### 🚀 Quick Start
 
