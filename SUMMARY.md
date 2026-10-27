@@ -32,13 +32,28 @@
 - **Plotly Charts:** All text elements properly styled (titles, axes, labels, legends)
 - **Radar Chart:** All 12 months explicitly displayed using `tickmode="array"`
 
-### **Improved Navigation Structure**
-1. Dashboard → Overview with executive insights
-2. Cluster Explorer → Enhanced search & detailed profiling
-3. **Forecasting** → New comprehensive forecasting page
-4. Data Explorer → Improved filters and explanations
-5. Transport Insights → Enhanced recovery analysis
-6. Tentang Model → Expanded model documentation
+### **Improved Navigation Structure (Streamlined 8 Core Modules)**
+1. Dashboard → Overview with executive insights & integrated transport mix
+2. Peta Geospasial → Interactive geospatial mapping of 26 entry points
+3. Cluster Explorer → Enhanced search & detailed profiling
+4. Forecasting → SARIMA 12-month predictions & algorithm benchmarks
+5. **Simulator Kebijakan (What-If)** → Strategic policy simulation & economic impact modeling
+6. **Deteksi Anomali & Krisis** → Isolation Forest unsupervised anomaly detection & crisis analysis
+7. Data Explorer → Transparent dataset filtering and auditability
+8. Tentang Model → Comprehensive model cards and academic methodology
+
+## 🆕 STRATEGIC POLICY SIMULATOR (WHAT-IF DSS)
+- **Policy Levers:** Interactive sliders for international flight capacity ($\pm 5\%$ to $\pm 30\%$), visa-free / VoA expansion ($0\%$ to $+25\%$), aviation fuel & ticket costs ($-20\%$ to $+20\%$), and Beyond Bali redistribution ($0\%$ to $+30\%$).
+- **Scenario Presets:** Status Quo, Visit Indonesia Golden Year, Global Aviation Crisis, Beyond Bali Priority, Custom.
+- **Economic Impact Engine:** Real-time estimation of foreign exchange earnings (Devisa Pariwisata in Million USD & Trillion IDR) based on BPS Passenger Exit Survey (PES) standards.
+- **Cluster Share Dynamics:** Dynamic modeling of visitor shift from Mega-Hubs (Cluster 0) to 24 Regional Gateways (Cluster 1).
+- **Interactive Visualizations:** Dual line & shaded area comparison chart, factor attribution waterfall, cluster distribution shift, and downloadable CSV simulation table.
+
+## 🆕 UNSUPERVISED ANOMALY DETECTION & CRISIS ANALYTICS
+- **Isolation Forest Engine:** Unsupervised time-series anomaly detection over 127 monthly observations (2016–2026) using volume, MoM %, YoY %, and seasonal deviations.
+- **Anomaly Categorization:** Automatic classification into Severe Negative Shocks (crises, lockdowns, disasters) vs Positive Surges (rebound turning points, major multilateral summits).
+- **Historical Crisis Dossier:** Interactive catalog documenting major historical events (Nov 2017 Mount Agung Eruption, Mar 2020 COVID-19 Lockdown, Jul 2021 Delta Wave, Feb 2022 Re-opening & VoA, Nov 2022 G20 Bali Summit, 2023–2025 Super Events).
+- **Rebound Velocity Analysis:** Post-crisis milestone tracking (25%, 50%, 75%, 100% recovery) from pandemic trough (Feb 2021) and cross-modal resilience comparison (Air vs Sea vs Land).
 
 ### **Enhanced Dashboard Features**
 - **Executive Insights:** Dynamic data-driven insights (4 key findings)

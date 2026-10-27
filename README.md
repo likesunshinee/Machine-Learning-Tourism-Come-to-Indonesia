@@ -6,13 +6,14 @@ A comprehensive Streamlit application for analyzing and forecasting Indonesian t
 
 ### 🌟 Features
 
-1. **Dashboard** - Executive overview with key insights and trends
+1. **Dashboard** - Executive overview with key insights, macro trends, and integrated transport mode analysis (Air, Land, Sea)
 2. **Peta Geospasial** - Interactive geospatial mapping of 26 entry points with cluster & transport filters
-3. **Cluster Explorer** - K-Means clustering analysis of entry points
+3. **Cluster Explorer** - K-Means clustering analysis of entry points with 12-month radar profiling
 4. **Forecasting** - Multi-level SARIMA time-series forecasting (National, Transport Mode, and Entry Point specific) with 12-month ahead predictions
-5. **Data Explorer** - Interactive data filtering and exploration
-6. **Transport Insights** - Transportation mode analysis (Air, Land, Sea)
-7. **Model Documentation** - Comprehensive model cards and methodology
+5. **Simulator Kebijakan (What-If DSS)** - Decision support system (DSS) simulator for testing flight capacity, visa policies, aviation costs, and Beyond Bali regional redistribution with foreign exchange (devisa) impact modeling
+6. **Deteksi Anomali & Krisis** - Unsupervised Machine Learning (Isolation Forest) anomaly detection for crisis shocks (COVID-19, volcanic eruption) and positive surges, with historical event dossiers and rebound velocity metrics
+7. **Data Explorer** - Interactive data filtering and auditability
+8. **Model Documentation** - Comprehensive model cards and academic methodology
 
 ### 🚀 Quick Start
 
@@ -56,11 +57,11 @@ tourism_indonesia_forecasting/
 
 ### 🎨 Visual Design
 
-**Theme:** Claymorphism Tropical
-- Soft pastel backgrounds with tropical gradient
-- Rounded clay-style cards with neumorphic shadows
-- Consistent green typography (#1F5137)
-- Professional transportation elements (✈🚌⛴)
+**Theme:** Aviation Glassmorphism Atmosphere
+- **Live Moving Background:** Hardware-accelerated 45-second cinematic slow-drift animation (`@keyframes flightDrift`) featuring custom digital aviation art above clouds.
+- **Frosted Glass Cards:** Semi-transparent cards (`backdrop-filter: blur(16px)`) with luminous borders (`rgba(255, 255, 255, 0.75)`) and floating elevation shadows.
+- **Executive Horizon Tint:** Radial dark-emerald overlay (`backdrop-filter: blur(1.5px)`) ensuring high contrast and optimal legibility for typography and charts.
+- **Professional Branding:** Clean typography (DM Sans & Baloo 2), no distracting casual emojis, and refined executive navigation.
 
 ### 📊 Models & Analytics
 
